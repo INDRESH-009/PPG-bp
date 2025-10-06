@@ -1,0 +1,56 @@
+paths:
+  data_root: "/ABSOLUTE/PATH/TO/DataRoot"
+  index_csv: "data/index.csv"
+  runs_dir: "runs"
+  export_dir: "export"
+
+data:
+  fs: 100                # Hz; change to 125 if needed
+  win_seconds: 10
+  normalize: "zscore"    # "zscore" | "minmax"
+  bandpass: [0.5, 8.0]   # Hz (zero-phase)
+  sqi:
+    enable: true
+    amp_range: [0.1, 3.0]
+    flat_std_min: 0.05
+    hr_range: [40, 180]  # bpm
+  augment:
+    enable: true
+    time_warp_pct: 0.05  # ±5%
+    amp_scale_pct: 0.10  # ±10%
+    jitter_std: 0.005
+    crop_seconds: 0.5
+
+cv:
+  n_splits: 5
+  seed: 42
+
+train:
+  batch_size: 128
+  num_workers: 6
+  epochs: 80
+  optimizer: "adamw"
+  lr: 0.001
+  weight_decay: 0.0001
+  scheduler: "cosine"
+  warmup_epochs: 5
+  grad_clip: 1.0
+  early_stop_patience: 12
+  loss: "smoothl1"       # "smoothl1" | "hetero"
+  sbp_weight: 1.25
+  ema:
+    enable: true
+    decay: 0.999
+
+model:
+  name: "TCTransformer"
+  cnn_channels: [32, 64, 128]
+  kernel_size: 7
+  se_reduction: 8
+  transformer:
+    d_model: 128
+    n_heads: 4
+    num_layers: 2
+    ff_mult: 2
+  head_hidden: 256
+  dropout: 0.1
