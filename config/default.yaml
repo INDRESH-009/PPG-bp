@@ -1,11 +1,11 @@
 paths:
-  data_root: "/ABSOLUTE/PATH/TO/DataRoot"
+  data_root: ""
   index_csv: "data/index.csv"
   runs_dir: "runs"
   export_dir: "export"
 
 data:
-  fs: 100                # Hz; change to 125 if needed
+  fs: 125              # Hz; change to 125 if needed
   win_seconds: 10
   normalize: "zscore"    # "zscore" | "minmax"
   bandpass: [0.5, 8.0]   # Hz (zero-phase)
@@ -54,3 +54,5 @@ model:
     ff_mult: 2
   head_hidden: 256
   dropout: 0.1
+
+
