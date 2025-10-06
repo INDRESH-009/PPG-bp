@@ -122,11 +122,11 @@ def main(cfg_path):
         tr_ds = PulseDataset(tr_df, fs=cfg["data"]["fs"], band=tuple(cfg["data"]["bandpass"]),
                              norm=cfg["data"]["normalize"],
                              use_sqi=cfg["data"]["sqi"]["enable"], sqi_cfg=cfg["data"]["sqi"],
-                             aug_cfg=cfg["data"]["augment"], train=True)
+                             aug_cfg=cfg["data"]["augment"], train=True,channels=cfg["data"].get("channels", {"raw": True}))
         va_ds = PulseDataset(va_df, fs=cfg["data"]["fs"], band=tuple(cfg["data"]["bandpass"]),
                              norm=cfg["data"]["normalize"],
                              use_sqi=cfg["data"]["sqi"]["enable"], sqi_cfg=cfg["data"]["sqi"],
-                             aug_cfg={**cfg["data"]["augment"], "enable": False}, train=False)
+                             aug_cfg={**cfg["data"]["augment"], "enable": False}, train=False,channels=cfg["data"].get("channels", {"raw": True}))
 
         tr_dl = DataLoader(tr_ds, batch_size=cfg["train"]["batch_size"], shuffle=True,
                            num_workers=cfg["train"]["num_workers"], pin_memory=True, drop_last=True)

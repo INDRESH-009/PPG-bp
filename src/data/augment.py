@@ -36,10 +36,31 @@ def random_crop_pad(x, fs, crop_seconds=0.5):
         y = np.pad(y, (pad_left, pad_right), mode="edge")
     return y.astype(np.float32)
 
+def time_mask(x, max_frac=0.08):
+    if max_frac <= 0: 
+        return x
+    L = len(x)
+    w = int(L * np.random.uniform(0.0, max_frac))
+    if w <= 0 or w >= L:
+        return x
+    s = np.random.randint(0, L - w + 1)
+    y = x.copy()
+    # linear interpolation across the masked region
+    left_idx = max(0, s-1)
+    right_idx = min(L-1, s+w)
+    y[s:s+w] = np.interp(np.arange(s, s+w),
+                         [left_idx, right_idx],
+                         [x[left_idx], x[right_idx]]).astype(np.float32)
+    return y
+
 def apply_augs(x, fs, cfg):
-    if not cfg.get("enable", True): return x.astype(np.float32)
+    if not cfg.get("enable", True):
+        return x.astype(np.float32)
     x = time_warp(x, cfg.get("time_warp_pct", 0.05))
     x = amp_scale(x, cfg.get("amp_scale_pct", 0.10))
     x = jitter(x, cfg.get("jitter_std", 0.005))
-    x = random_crop_pad(x, fs, cfg.get("crop_seconds", 0.5))
+    if cfg.get("time_mask", {}).get("enable", False):
+        x = time_mask(x, cfg.get("time_mask", {}).get("max_frac", 0.08))
+    # keep crop off for SBP stability (crop_seconds set to 0.0)
     return x.astype(np.float32)
+

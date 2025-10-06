@@ -32,10 +32,10 @@ class ResConv1DBlock(nn.Module):
         return self.act(x+y)
 
 class ConvStem(nn.Module):
-    def __init__(self, chs=(32,64,128), k=7):
+    def __init__(self, chs=(32,64,128), k=7, in_channels=1):
         super().__init__()
         layers=[]
-        in_c=1
+        in_c=in_channels
         for c in chs:
             layers += [
                 nn.Conv1d(in_c, c, k, padding=k//2),
@@ -46,6 +46,7 @@ class ConvStem(nn.Module):
             in_c=c
         self.net = nn.Sequential(*layers)
     def forward(self, x): return self.net(x)
+
 
 class PositionalEncoding(nn.Module):
     def __init__(self, d_model, max_len=2000):
@@ -66,7 +67,8 @@ class TCTransformer(nn.Module):
     def __init__(self, cfg):
         super().__init__()
         chs = cfg["cnn_channels"]; k = cfg["kernel_size"]
-        self.stem = ConvStem(tuple(chs), k=k)
+        in_ch = cfg.get("in_channels", 1)   # NEW
+        self.stem = ConvStem(tuple(chs), k=k, in_channels=in_ch)
         d_model = cfg["transformer"]["d_model"]
         self.proj = nn.Conv1d(chs[-1], d_model, 1)
         self.pos = PositionalEncoding(d_model)
@@ -76,16 +78,17 @@ class TCTransformer(nn.Module):
             dropout=cfg.get("dropout",0.1), batch_first=True, activation="gelu"
         )
         self.tr = nn.TransformerEncoder(enc_layer, num_layers=cfg["transformer"]["num_layers"])
+        out_dim = 4 if cfg.get("loss","smoothl1")=="hetero" else 2  # mean/logvar or plain
         self.head = nn.Sequential(
             nn.AdaptiveAvgPool1d(1), nn.Flatten(),
             nn.Linear(d_model, cfg["head_hidden"]), nn.GELU(),
             nn.Dropout(cfg.get("dropout",0.1)),
-            nn.Linear(cfg["head_hidden"], 2 if cfg.get("loss","smoothl1")!="hetero" else 4)
+            nn.Linear(cfg["head_hidden"], out_dim)
         )
 
     def forward(self, x):
-        # x: [B,1,L]
-        z = self.stem(x)                # [B,C,L']
+        # x: [B,C,L]
+        z = self.stem(x)                # [B,C',L']
         z = self.proj(z)                # [B,D,L']
         zt = rearrange(z, "b d l -> b l d")
         zt = self.pos(zt)
@@ -93,3 +96,6 @@ class TCTransformer(nn.Module):
         zt = rearrange(zt, "b l d -> b d l")
         out = self.head(zt)             # [B,2] or [B,4]
         return out
+
+
+    

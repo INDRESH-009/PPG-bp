@@ -4,9 +4,16 @@ from .utils import bandpass, detrend_poly, normalize
 from .sqi import basic_sqi
 from .augment import apply_augs
 
+def deriv(x, fs):
+    # central differences; preserves length
+    dx = np.gradient(x) * fs
+    ddx = np.gradient(dx) * fs
+    return dx.astype(np.float32), ddx.astype(np.float32)
+
+
 class PulseDataset(Dataset):
     def __init__(self, df, fs=100, band=(0.5,8.0), norm="zscore",
-                 use_sqi=True, sqi_cfg=None, aug_cfg=None, train=True):
+                 use_sqi=True, sqi_cfg=None, aug_cfg=None, train=True,channels=None):
         self.df = df.reset_index(drop=True)
         self.fs = fs
         self.band = band
@@ -15,6 +22,7 @@ class PulseDataset(Dataset):
         self.sqi_cfg = sqi_cfg or {}
         self.aug_cfg = aug_cfg or {}
         self.train = train
+        self.channels = channels or {"raw": True, "vel": False, "acc": False}
 
     def __len__(self): return len(self.df)
 
@@ -52,7 +60,16 @@ class PulseDataset(Dataset):
         if self.train:
             x = apply_augs(x, self.fs, self.aug_cfg)
 
-        x = torch.tensor(x, dtype=torch.float32).unsqueeze(0)  # [1, L]
-        y = torch.tensor(y, dtype=torch.float32)               # [2]
+        chans = []
+        if self.channels.get("raw", True):
+            chans.append(x)
+        if self.channels.get("vel", False) or self.channels.get("acc", False):
+            dx, ddx = deriv(x, self.fs)
+            if self.channels.get("vel", False): chans.append(dx)
+            if self.channels.get("acc", False): chans.append(ddx)
+
+        x = np.stack(chans, axis=0)  # [C, L]
+        x = torch.tensor(x, dtype=torch.float32)
+        y = torch.tensor(y, dtype=torch.float32)
         pid = row["pid"]
         return x, y, pid
