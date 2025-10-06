@@ -8,10 +8,30 @@ from .data.dataset import PulseDataset
 from .models.tc_transformer import TCTransformer
 from .models.losses import SmoothL1Multi, HeteroscedasticLoss
 from .models.metrics import mae, DictMeter
+from .data.dataset_beats import PulseBeatsDataset
+from .models.beatformer import BeatFormer
+
 
 # -------------------------------------------------------------------------
 # EMA (unchanged except for the float-only fix)
 # -------------------------------------------------------------------------
+
+class TargetScaler:
+    def __init__(self, mean=None, std=None):
+        self.mean = None if mean is None else np.array(mean, dtype=np.float32)
+        self.std  = None if std  is None else np.array(std, dtype=np.float32)
+
+    def fit(self, y_np):   # y_np shape [N,2]
+        self.mean = y_np.mean(axis=0).astype(np.float32)
+        self.std  = (y_np.std(axis=0) + 1e-6).astype(np.float32)
+        return self
+
+    def transform(self, y_t):
+        return (y_t - torch.tensor(self.mean, device=y_t.device)) / torch.tensor(self.std, device=y_t.device)
+
+    def inv_transform(self, y_t):
+        return y_t * torch.tensor(self.std, device=y_t.device) + torch.tensor(self.mean, device=y_t.device)
+
 class EMA:
     def __init__(self, model, decay=0.999):
         self.decay = decay

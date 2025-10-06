@@ -49,16 +49,26 @@ train:
     enable: true
     decay: 0.999
 
+# ... keep paths, data, cv, train as you have (fs=125, channels raw+vel+acc can be ignored by BeatFormer)
+
 model:
-  name: "TCTransformer"
-  in_channels: 3          # <— raw + vel + acc
+  name: "BeatFormer"      # <— switch model
+  in_channels: 3          # raw, dPPG, SDPPG per beat
   cnn_channels: [32, 64, 128]
   kernel_size: 7
   se_reduction: 8
   transformer:
-    d_model: 160          # slightly larger
-    n_heads: 5
+    d_model: 128
+    n_heads: 4
     num_layers: 3
     ff_mult: 2
   head_hidden: 256
   dropout: 0.2
+
+beats:
+  target_len: 256         # resample each beat to this length
+  max_beats: 16           # pad/truncate beat sequence to this many beats per 10 s
+  min_beats: 6            # skip windows with too few valid beats during TRAIN
+  peak_distance_ms: 300   # min peak distance
+  prominence: 0.1         # peak prominence for find_peaks
+  use_vel_acc: true       # build 3 channels: raw, dPPG, SDPPG
