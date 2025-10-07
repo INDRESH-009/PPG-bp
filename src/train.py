@@ -57,8 +57,14 @@ class EMA:
 def build_model(cfg_train, cfg_model):
     name = cfg_model["name"].lower()
     if name == "beatformer":
+        from .models.beatformer import BeatFormer
         return BeatFormer({**cfg_model, "loss": cfg_train["loss"]})
+    if name == "unet1d":
+        from .models.unet1d import UNet1D
+        return UNet1D({**cfg_model, "loss": cfg_train["loss"]})
+    from .models.tc_transformer import TCTransformer
     return TCTransformer({**cfg_model, "loss": cfg_train["loss"]})
+
 
 def build_datasets(cfg, tr_df, va_df):
     use_beats = (cfg["model"]["name"].lower() == "beatformer")

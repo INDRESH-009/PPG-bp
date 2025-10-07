@@ -52,18 +52,14 @@ train:
 # ... keep paths, data, cv, train as you have (fs=125, channels raw+vel+acc can be ignored by BeatFormer)
 
 model:
-  name: "BeatFormer"      # <— switch model
-  in_channels: 3          # raw, dPPG, SDPPG per beat
-  cnn_channels: [32, 64, 128]
+  name: "UNet1D"
+  in_channels: 3            # raw + vel + acc
+  cnn_channels: [32, 64, 128, 256]
   kernel_size: 7
   se_reduction: 8
-  transformer:
-    d_model: 128
-    n_heads: 4
-    num_layers: 3
-    ff_mult: 2
   head_hidden: 256
   dropout: 0.2
+
 
 beats:
   target_len: 256         # resample each beat to this length
